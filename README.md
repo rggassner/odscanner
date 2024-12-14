@@ -11,7 +11,7 @@ Welcome to the **Open Directory & Port Scanner** project! This Python-based tool
 -   **Open Directory Detection**:
     -   Detects open directories using predefined strings and regex patterns, including IP-based patterns in HTML titles.
 -   **Protocol Support**:
-    -   HTTP, HTTPS, and FTP scanning.
+    -   HTTP, HTTPS
 -   **Randomized Paths**:
     -   Optionally appends random paths to requests for broader scanning.
 -   **Excluded Networks**:
