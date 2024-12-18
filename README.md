@@ -56,9 +56,9 @@ pip install aiohttp
 
 Run the script with:
 
-    ```bash
-    python port_scan.py
-    ```
+   ```bash
+   python port_scan.py
+   ```
 
 ### Options
 
@@ -66,9 +66,9 @@ Run the script with:
 
 Example:
 
-    ```bash
-    python port_scan.py -v
-    ```
+   ```bash
+   python port_scan.py -v
+   ```
 
 ## Configuration
 
@@ -101,7 +101,3 @@ Feel free to submit issues or pull requests to improve the script!
 ## Disclaimer
 
 This script is for educational and research purposes only. Ensure you have permission to scan any IP addresses before use.
-
-vbnet
-
-Copy code
