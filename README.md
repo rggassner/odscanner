@@ -58,7 +58,7 @@ pip install aiohttp
     
     Copy code
     
-    `python -m port_scanner.py --setup-db`
+    `python -m port_scan.py --setup-db`
     
 
 ## Usage
@@ -69,7 +69,7 @@ bash
 
 Copy code
 
-`python port_scanner.py`
+`python port_scan.py`
 
 ### Options
 
@@ -81,7 +81,7 @@ bash
 
 Copy code
 
-`python port_scanner.py -v`
+`python port_scan.py -v`
 
 ## Configuration
 
