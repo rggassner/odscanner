@@ -28,7 +28,8 @@ pip install aiohttp
      
     ```bash
     git clone https://github.com/rggassner/odscanner.git
-    cd odscanner```
+    cd odscanner
+    ```
     
 3.  Set up a virtual environment and activate it:
     
