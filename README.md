@@ -116,16 +116,17 @@ This Python script visualizes the IPv4 address space on a per-/24 network basis,
 
 - Python 3.8+
 - `Pillow` library for image processing:
+- 
   ```bash
   pip install pillow
   ```
+
+  
 -   SQLite database file (`scan_results.db`) with the following schema:
     
-    sql
-    
-    Copy code
-    
-    `CREATE TABLE scan_results (     ip TEXT NOT NULL,     retired INTEGER NOT NULL );`
+```sql
+CREATE TABLE scan_results (     ip TEXT NOT NULL,     retired INTEGER NOT NULL );
+```
     
 
 ## Key Functions
@@ -152,13 +153,11 @@ This Python script visualizes the IPv4 address space on a per-/24 network basis,
 1.  Ensure you have the required SQLite database (`scan_results.db`) in the script's directory.
 2.  Run the script:
     
-    bash
+    ```bash
+    python image.py
+    ```
     
-    Copy code
-    
-    `python script_name.py`
-    
-3.  The resulting image (`ipv4_networks_colored.png`) will be saved in the current directory.
+4.  The resulting image (`ipv4_networks_colored.png`) will be saved in the current directory.
 
 ## Example Image
 
