@@ -30,7 +30,7 @@ pip install aiohttp
     
     Copy code
     
-    `git clone https://github.com/yourusername/async-ip-port-scanner.git cd async-ip-port-scanner`
+    `git clone https://github.com/rggassner/odscanner.git cd async-ip-port-scanner`
     
 2.  Set up a virtual environment and activate it:
     
@@ -116,8 +116,3 @@ This script is for educational and research purposes only. Ensure you have permi
 vbnet
 
 Copy code
-
-``Replace `yourusername` with your GitHub username in the repository URL. Let me know if you need further adjustments!``
-
-4o
-
