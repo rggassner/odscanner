@@ -25,22 +25,17 @@ pip install aiohttp
 ## Setup
 
 1.  Clone the repository:
-    
-    bash
-    
-    Copy code
-    
-    `git clone https://github.com/rggassner/odscanner.git
-     cd odscanner`
+     
+    ```bash
+    git clone https://github.com/rggassner/odscanner.git
+    cd odscanner```
     
 3.  Set up a virtual environment and activate it:
     
-    bash
-    
-    Copy code
-    
-    `` python -m venv venv
-    source venv/bin/activate  # On Windows, use `venv\Scripts\activate` ``
+    ```bash
+    python -m venv venv
+    source venv/bin/activate  # On Windows, use `venv\Scripts\activate`
+    ```
     
 5.  Install dependencies:
     
