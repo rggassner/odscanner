@@ -39,32 +39,26 @@ pip install aiohttp
     
 5.  Install dependencies:
     
-    bash
+    ```bash
+    pip install -r requirements.txt
+    ```
     
-    Copy code
+7.  Place the `nmap-services` file at `/usr/share/nmap/nmap-services`. Modify `file_path` in the script if the file is located elsewhere.
     
-    `pip install -r requirements.txt`
+8.  Initialize the SQLite database:
     
-6.  Place the `nmap-services` file at `/usr/share/nmap/nmap-services`. Modify `file_path` in the script if the file is located elsewhere.
-    
-7.  Initialize the SQLite database:
-    
-    bash
-    
-    Copy code
-    
-    `python -m port_scan.py --setup-db`
+    ```bash
+    python -m port_scan.py --setup-db
+    ```
     
 
 ## Usage
 
 Run the script with:
 
-bash
-
-Copy code
-
-`python port_scan.py`
+    ```bash
+    python port_scan.py
+    ```
 
 ### Options
 
@@ -72,11 +66,9 @@ Copy code
 
 Example:
 
-bash
-
-Copy code
-
-`python port_scan.py -v`
+    ```bash
+    python port_scan.py -v
+    ```
 
 ## Configuration
 
