@@ -1,47 +1,46 @@
+# Async IP and Port Scanner
 
-
-# Open Directory & Port Scanner
-
-Welcome to the **Open Directory & Port Scanner** project! This Python-based tool is designed to scan IP addresses for open ports and services, specifically detecting open directories on web servers. Built for scalability and efficiency, it leverages asynchronous programming with `aiohttp` and supports saving results to an SQLite database.
-
-* * *
+A Python script that scans randomly generated IPv4 addresses for open HTTP/HTTPS services. It uses weighted port probabilities, asynchronous operations for scalability, and SQLite for storing scan results.
 
 ## Features
 
--   **Open Directory Detection**:
-    -   Detects open directories using predefined strings and regex patterns, including IP-based patterns in HTML titles.
--   **Protocol Support**:
-    -   HTTP, HTTPS
--   **Randomized Paths**:
-    -   Optionally appends random paths to requests for broader scanning.
--   **Excluded Networks**:
-    -   Automatically excludes private and reserved IP ranges.
--   **SQLite Integration**:
-    -   Saves scan results into an SQLite database for easy querying and reporting.
--   **Concurrency**:
-    -   Asynchronous scanning supports high concurrency for faster results.
+- Asynchronous scanning with `aiohttp` for high performance.
+- Weighted random port selection based on nmap-services data.
+- Detects open directory listings using predefined indicators and regex patterns.
+- Stores results in an SQLite database.
+- Excludes private, multicast, and other non-routable IP ranges.
+- Supports verbose output for debugging or monitoring.
 
-* * *
+## Requirements
 
-## Installation
+- Python 3.8+
+- `aiohttp` library
 
-1.  **Clone the repository**:
+Install dependencies:
+
+```bash
+pip install aiohttp
+```
+
+## Setup
+
+1.  Clone the repository:
     
     bash
     
     Copy code
     
-    `git clone https://github.com/rggassner/odscanner.git cd open-directory-scanner`
+    `git clone https://github.com/yourusername/async-ip-port-scanner.git cd async-ip-port-scanner`
     
-2.  **Set up a virtual environment**:
+2.  Set up a virtual environment and activate it:
     
     bash
     
     Copy code
     
-    `` python3 -m venv venv source venv/bin/activate  # On Windows, use `venv\Scripts\activate` ``
+    `` python -m venv venv source venv/bin/activate  # On Windows, use `venv\Scripts\activate` ``
     
-3.  **Install dependencies**:
+3.  Install dependencies:
     
     bash
     
@@ -49,117 +48,76 @@ Welcome to the **Open Directory & Port Scanner** project! This Python-based tool
     
     `pip install -r requirements.txt`
     
-4.  **Set up the database**:
+4.  Place the `nmap-services` file at `/usr/share/nmap/nmap-services`. Modify `file_path` in the script if the file is located elsewhere.
+    
+5.  Initialize the SQLite database:
     
     bash
     
     Copy code
     
-    `python main.py --setup-database`
+    `python -m async_scanner.py --setup-db`
     
-
-* * *
 
 ## Usage
 
-Run the scanner using the following command:
+Run the script with:
 
 bash
 
 Copy code
 
-`python main.py`
+`python async_scanner.py`
 
 ### Options
 
--   `-v` or `--verbose`: Enable detailed output during the scan.
+-   `-v`, `--verbose`: Enable verbose output for debugging.
 
-Example with verbose mode:
+Example:
 
 bash
 
 Copy code
 
-`python main.py -v`
-
-* * *
-
-## How It Works
-
-1.  **IP Generation**:
-    
-    -   Generates a randomized list of public IPv4 addresses, excluding private and reserved ranges.
-2.  **Randomized Scanning**:
-    
-    -   Randomly selects a protocol (HTTP/HTTPS) and port from predefined lists.
-    -   Optional random paths can be appended to URLs to increase detection chances.
-3.  **Open Directory Detection**:
-    
-    -   Uses both exact string matches and regex patterns to detect open directories.
-4.  **Database Storage**:
-    
-    -   Saves scan results (IP, port, protocol, response status, directory detection, etc.) in an SQLite database.
-
-* * *
+`python async_scanner.py -v`
 
 ## Configuration
 
-### Random Paths
+### IP and Port Ranges
 
-Modify the `POSSIBLE_PATHS` list in `main.py` to add or customize paths:
-
-python
-
-Copy code
-
-`POSSIBLE_PATHS = [     "Data/",     "media/",     "buitenwesten/",     "foo/",     "platinum/", ]`
-
-### Protocols and Ports
-
-Add or remove protocols and their respective ports in the `PROTOCOL_PORTS` dictionary:
-
-python
-
-Copy code
-
-`PROTOCOL_PORTS = {     "http": [80, 8080, 8888],     "https": [443, 8443], }`
+-   IPs are randomly generated, excluding private and reserved ranges.
+-   Ports are selected based on weighted probabilities from the `nmap-services` file.
 
 ### Open Directory Indicators
 
-Edit the `OPEN_DIRECTORY_INDICATORS` and `OPEN_DIRECTORY_INDICATORS_REGEX` lists to include additional patterns:
+Customize the open directory detection logic by editing the `OPEN_DIRECTORY_INDICATORS` or `OPEN_DIRECTORY_INDICATORS_REGEX` lists in the script.
 
-python
+### Database Configuration
 
-Copy code
+Results are stored in an SQLite database named `scan_results.db`. The database schema is automatically created by the script.
 
-`OPEN_DIRECTORY_INDICATORS = [     "Index of /",     "AList", ] OPEN_DIRECTORY_INDICATORS_REGEX = [     re.compile(r"<title>\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}\s*-\s*/</title>", re.IGNORECASE), ]`
+## Output
 
-* * *
-
-## Contributing
-
-Contributions are welcome! To contribute:
-
-1.  Fork the repository.
-2.  Create a new branch for your feature or bugfix.
-3.  Submit a pull request.
-
-* * *
+-   Results are stored in the `scan_results.db` SQLite file.
+-   Each record includes IP, port, protocol, status code, redirect URL, and open directory detection status.
 
 ## License
 
 This project is licensed under the MIT License. See the LICENSE file for details.
 
-* * *
+## Contributing
+
+Feel free to submit issues or pull requests to improve the script!
 
 ## Disclaimer
 
-This tool is intended for ethical use only. Ensure you have proper authorization before scanning networks or systems. Misuse may violate laws and regulations in your jurisdiction. The developers assume no responsibility for improper use.
+This script is for educational and research purposes only. Ensure you have permission to scan any IP addresses before use.
 
-* * *
+vbnet
 
-### Author
+Copy code
 
-Developed by a cybersecurity student passionate about scalable and efficient tools. Feel free to reach out with questions or feedback!
+``Replace `yourusername` with your GitHub username in the repository URL. Let me know if you need further adjustments!``
 
-* * *
+4o
+
