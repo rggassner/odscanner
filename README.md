@@ -30,17 +30,19 @@ pip install aiohttp
     
     Copy code
     
-    `git clone https://github.com/rggassner/odscanner.git cd async-ip-port-scanner`
+    `git clone https://github.com/rggassner/odscanner.git
+     cd odscanner`
     
-2.  Set up a virtual environment and activate it:
+3.  Set up a virtual environment and activate it:
     
     bash
     
     Copy code
     
-    `` python -m venv venv source venv/bin/activate  # On Windows, use `venv\Scripts\activate` ``
+    `` python -m venv venv
+    source venv/bin/activate  # On Windows, use `venv\Scripts\activate` ``
     
-3.  Install dependencies:
+5.  Install dependencies:
     
     bash
     
@@ -48,15 +50,15 @@ pip install aiohttp
     
     `pip install -r requirements.txt`
     
-4.  Place the `nmap-services` file at `/usr/share/nmap/nmap-services`. Modify `file_path` in the script if the file is located elsewhere.
+6.  Place the `nmap-services` file at `/usr/share/nmap/nmap-services`. Modify `file_path` in the script if the file is located elsewhere.
     
-5.  Initialize the SQLite database:
+7.  Initialize the SQLite database:
     
     bash
     
     Copy code
     
-    `python -m async_scanner.py --setup-db`
+    `python -m port_scanner.py --setup-db`
     
 
 ## Usage
@@ -67,7 +69,7 @@ bash
 
 Copy code
 
-`python async_scanner.py`
+`python port_scanner.py`
 
 ### Options
 
@@ -79,7 +81,7 @@ bash
 
 Copy code
 
-`python async_scanner.py -v`
+`python port_scanner.py -v`
 
 ## Configuration
 
