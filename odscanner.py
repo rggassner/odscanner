@@ -9,10 +9,18 @@ from ipaddress import IPv4Address, IPv4Network
 import ssl
 import re
 
+file_path = "/usr/share/nmap/nmap-services"
+
 DB_NAME = "scan_results.db"
 TABLE_NAME = "scan_results"
 
 OPEN_DIRECTORY_INDICATORS = [
+    "Parent Directory",
+    "folder listing",
+    "Browsing",
+    "<h1>Index of",
+    "folder view",
+    "Directory Contents",        
     "Index of /",
     "Directory listing of http",
     "AList",
@@ -22,6 +30,9 @@ OPEN_DIRECTORY_INDICATORS = [
 
 OPEN_DIRECTORY_INDICATORS_REGEX = [
     re.compile(r"<title>\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}\s*-\s*/</title>", re.IGNORECASE),
+    re.compile(r"<title>Index of .*?</title>", re.IGNORECASE),
+    re.compile(r"<h1>Index of .*?</h1>", re.IGNORECASE),
+    re.compile(r"Directory listing for .*", re.IGNORECASE),    
 ]
 
 USER_AGENTS = [
@@ -50,22 +61,6 @@ debug_ips=[
         ]
 debug_ips=False
 
-path_chance = 0.05
-
-POSSIBLE_PATHS = [
-    "Data/",
-    "media/",
-    "foo/",
-    "platinum/",
-    "PLATINUMTEAM/",
-    "pub/",
-    ]
-
-PROTOCOL_PORTS = {
-    "http": [80, 81, 5244, 8080, 8081, 8089, 8888, 9000, 9092, 28903, 36657],
-    "https": [443, 8080],
-}
-
 def setup_database():
     conn = sqlite3.connect(DB_NAME)
     cursor = conn.cursor()
@@ -80,7 +75,6 @@ def setup_database():
             redirect_url TEXT,
             is_open_directory BOOLEAN,
             webpage_content TEXT,
-            ftp_files TEXT,
             last_scanned TEXT,
             retired BOOLEAN,
             UNIQUE(ip, port, protocol, path)
@@ -89,12 +83,61 @@ def setup_database():
     conn.commit()
     conn.close()
 
+def load_nmap_services(file_path):
+    """Load and parse nmap-services file to get port probabilities."""
+    ports = {}
+    with open(file_path, "r") as file:
+        for line in file:
+            if line.startswith("#") or not line.strip():
+                continue
+            parts = line.split()
+            port_protocol = parts[1]
+            probability = float(parts[2])
+            port, protocol = port_protocol.split("/")
+            if protocol == "tcp":  # We're only interested in TCP ports
+                ports[int(port)] = probability
+    return ports
+
+def get_http_or_https():
+    return random.choices(["http", "https"], weights=[65, 35], k=1)[0]
+
+def generate_random_port(ports, full_range=(1, 65535)):
+    """Generate a random port with weighted probabilities."""
+    """https://scottbrownconsulting.com/2018/11/nmap-top-ports-frequencies-study/"""
+    """LZR: Identifying Unexpected Internet Services"""
+    """https://arxiv.org/pdf/2301.04841"""
+    # Get all ports and their weights
+    known_ports = list(ports.keys())
+    known_weights = list(ports.values())
+
+    # Assign very small weights to ports with 0.000000
+    min_known_weight = min(w for w in known_weights if w > 0)
+    adjusted_weights = [w if w > 0 else min_known_weight / 10 for w in known_weights]
+
+    # Add ports not in the known list with even smaller probabilities
+    all_ports = list(range(full_range[0], full_range[1] + 1))
+    unknown_ports = set(all_ports) - set(known_ports)
+    min_unknown_weight = min(adjusted_weights) / 10
+    unknown_weights = [min_unknown_weight] * len(unknown_ports)
+
+    # Combine known and unknown ports
+    combined_ports = known_ports + list(unknown_ports)
+    combined_weights = adjusted_weights + unknown_weights
+
+    # Normalize weights to sum up to 1
+    total_weight = sum(combined_weights)
+    normalized_weights = [w / total_weight for w in combined_weights]
+
+    # Select a random port based on probabilities
+    return random.choices(combined_ports, weights=normalized_weights, k=1)[0]
+
 async def check_http(ip, port, protocol, verbose=False):
     """
-    Scan an HTTP or HTTPS service, optionally including a random path.
+    Scan an HTTP or HTTPS service
     """
-    path = random.choice(POSSIBLE_PATHS) if random.random() < path_chance else ""
-    url = f"{protocol}://{ip}:{port}/{path}"
+    if verbose:
+        print(f"Scanning IP {ip} on port {port} ({protocol})...")
+    url = f"{protocol}://{ip}:{port}"
     headers = {"User-Agent": random.choice(USER_AGENTS)}
     ssl_context = ssl.create_default_context()
     ssl_context.check_hostname = False
@@ -108,28 +151,13 @@ async def check_http(ip, port, protocol, verbose=False):
                 if not is_open_directory:
                     is_open_directory = any(regex.search(content) for regex in OPEN_DIRECTORY_INDICATORS_REGEX)
                 redirect_url = str(response.url) if response.history else None
-                return http_code, redirect_url, is_open_directory, content, None, False, path
+                return http_code, redirect_url, is_open_directory, content, None, False
     except Exception as e:
         if verbose:
             print(f"Error scanning {url} - {e}")
-    return None, None, False, None, None, True, path
+    return None, None, False, None, None, True
 
-async def check_port(ip, port, protocol, verbose=False):
-    """
-    Scan a port using the selected protocol.
-    """
-    if verbose:
-        print(f"Scanning IP {ip} on port {port} ({protocol})...")
-    if protocol in ["http", "https"]:
-        return await check_http(ip, port, protocol, verbose)
-    elif protocol == "ftp":
-        return await check_ftp(ip, port, verbose)
-    else:
-        if verbose:
-            print(f"Protocol {protocol} not supported.")
-        return None, None, False, None, None, True, ""
-
-def save_to_database(ip, port, protocol, status_code, redirect_url, is_open_directory, content, ftp_files, retired, path, verbose=False):
+def save_to_database(ip, port, protocol, status_code, redirect_url, is_open_directory, content, retired, verbose=False):
     """
     Save or update scan result for a single IP and port.
     """
@@ -138,25 +166,25 @@ def save_to_database(ip, port, protocol, status_code, redirect_url, is_open_dire
     last_scanned = datetime.utcnow().isoformat()
     cursor.execute(f"""
         SELECT id FROM {TABLE_NAME} WHERE ip = ? AND port = ? AND protocol = ? AND path = ?
-    """, (ip, port, protocol, path))
+    """, (ip, port, protocol, ''))
     existing_entry = cursor.fetchone()
     if existing_entry:
         cursor.execute(f"""
             UPDATE {TABLE_NAME}
             SET status_code = ?, redirect_url = ?, is_open_directory = ?, webpage_content = ?,
-                ftp_files = ?, last_scanned = ?, retired = ?
-            WHERE ip = ? AND port = ? AND protocol = ? AND path = ?
-        """, (status_code, redirect_url, is_open_directory, content, ftp_files, last_scanned, retired, ip, port, protocol, path))
+                last_scanned = ?, retired = ?
+            WHERE ip = ? AND port = ? AND protocol = ? AND path = ? 
+        """, (status_code, redirect_url, is_open_directory, content, last_scanned, retired, ip, port, protocol, ''))
         if verbose:
-            print(f"Updated database entry for {ip}:{port} ({protocol}, {path}).")
+            print(f"Updated database entry for {protocol}://{ip}:{port}.")
     else:
         cursor.execute(f"""
             INSERT INTO {TABLE_NAME}
-            (ip, port, protocol, path, status_code, redirect_url, is_open_directory, webpage_content, ftp_files, last_scanned, retired)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-        """, (ip, port, protocol, path, status_code, redirect_url, is_open_directory, content, ftp_files, last_scanned, retired))
+            (ip, port, protocol, status_code, redirect_url, is_open_directory, webpage_content, last_scanned, retired, path)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        """, (ip, port, protocol, status_code, redirect_url, is_open_directory, content, last_scanned, retired, ''))
         if verbose:
-            print(f"Inserted new database entry for {ip}:{port} ({protocol}, {path}).")
+            print(f"Inserted database entry for {protocol}://{ip}:{port}.")
     conn.commit()
     conn.close()
 
@@ -165,12 +193,17 @@ async def scan_ips(ip_list, concurrency=4, verbose=False):
     Scan a randomized list of IPs for a randomly selected protocol and port.
     """
     sem = asyncio.Semaphore(concurrency)
+    
     async def bound_check(ip):
-        protocol = random.choice(list(PROTOCOL_PORTS.keys()))  # Choose a protocol at random
-        port = random.choice(PROTOCOL_PORTS[protocol])  # Choose a port for the protocol
+        protocol = get_http_or_https()  # Choose a protocol at random
+        port = generate_random_port(ports)  # Choose a port 
         async with sem:
-            result = await check_port(ip, port, protocol, verbose)
-            save_to_database(ip, port, protocol, *result, verbose=verbose)  # Save result after each scan
+            result = await check_http(ip, port, protocol, verbose)
+            if result:
+                status_code, redirect_url, is_open_directory, content, _, retired = result
+                save_to_database(
+                    ip, port, protocol, status_code, redirect_url, is_open_directory, content, retired, verbose=verbose
+                )  # Save result after each scan
     tasks = [bound_check(ip) for ip in ip_list]
     await asyncio.gather(*tasks)
 
@@ -192,8 +225,12 @@ if __name__ == "__main__":
     parser.add_argument("-v", "--verbose", action="store_true", help="Enable verbose output")
     args = parser.parse_args()
     setup_database()
-    ip_count = 512000  # Number of IPs to scan in each run
-    concurrency = 5
+
+    # Load ports and their probabilities
+    ports = load_nmap_services(file_path)
+
+    ip_count = 4096  # Number of IPs to scan in each run
+    concurrency = 2
     ip_list = generate_random_ips(ip_count)
     asyncio.run(scan_ips(ip_list, concurrency, args.verbose))
     print("Scan completed.")
