@@ -8,6 +8,8 @@ import argparse
 from ipaddress import IPv4Address, IPv4Network
 import ssl
 import re
+from datetime import datetime, timezone
+
 
 file_path = "/usr/share/nmap/nmap-services"
 
@@ -163,7 +165,7 @@ def save_to_database(ip, port, protocol, status_code, redirect_url, is_open_dire
     """
     conn = sqlite3.connect(DB_NAME)
     cursor = conn.cursor()
-    last_scanned = datetime.utcnow().isoformat()
+    last_scanned = datetime.now(timezone.utc).isoformat()
     cursor.execute(f"""
         SELECT id FROM {TABLE_NAME} WHERE ip = ? AND port = ? AND protocol = ? AND path = ?
     """, (ip, port, protocol, ''))
@@ -230,7 +232,7 @@ if __name__ == "__main__":
     ports = load_nmap_services(file_path)
 
     ip_count = 4096  # Number of IPs to scan in each run
-    concurrency = 2
+    concurrency = 4
     ip_list = generate_random_ips(ip_count)
     asyncio.run(scan_ips(ip_list, concurrency, args.verbose))
     print("Scan completed.")
