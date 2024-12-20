@@ -119,7 +119,7 @@ html_template = """
             {% for row in data1 %}
             <tr>
                 <td>{{ row[0] }}</td>
-                <td><a href="{{ row[3] }}://{{ row[1] }}:{{ row[2] }}{{ row[4] }}" target="_blank">{{ row[3] }}://{{ row[1] }}:{{ row[2] }}{{ row[4] }}</a></td>
+                <td><a href="{{ row[3] }}://{{ row[1] }}:{{ row[2] }}/{{ row[4] }}" target="_blank">{{ row[3] }}://{{ row[1] }}:{{ row[2] }}/{{ row[4] }}</a></td>
                 <td>{{ row[5] }}</td>
                 <td>{{ row[6] }}</td>
                 <td>{{ row[7] }}</td>
@@ -147,7 +147,7 @@ html_template = """
             {% for row in data2 %}
             <tr>
                 <td>{{ row[0] }}</td>
-                <td><a href="{{ row[3] }}://{{ row[1] }}:{{ row[2] }}{{ row[4] }}" target="_blank">{{ row[3] }}://{{ row[1] }}:{{ row[2] }}{{ row[4] }}</a></td>
+                <td><a href="{{ row[3] }}://{{ row[1] }}:{{ row[2] }}/{{ row[4] }}" target="_blank">{{ row[3] }}://{{ row[1] }}:{{ row[2] }}/{{ row[4] }}</a></td>
                 <td>{{ row[5] }}</td>
                 <td>{{ row[6] }}</td>
                 <td>{{ row[7] }}</td>
@@ -182,7 +182,7 @@ html_template = """
     </div>
 </div>
 
-    <h2>Non-Empty Status Code</h2>
+    <h2>Status Code 200</h2>
     <table id="table3">
         <thead>
             <tr>
@@ -199,7 +199,7 @@ html_template = """
             {% for row in data3 %}
             <tr>
                 <td>{{ row[0] }}</td>
-                <td><a href="{{ row[3] }}://{{ row[1] }}:{{ row[2] }}{{ row[4] }}" target="_blank">{{ row[3] }}://{{ row[1] }}:{{ row[2] }}{{ row[4] }}</a></td>
+                <td><a href="{{ row[3] }}://{{ row[1] }}:{{ row[2] }}/{{ row[4] }}" target="_blank">{{ row[3] }}://{{ row[1] }}:{{ row[2] }}/{{ row[4] }}</a></td>
                 <td>{{ row[5] }}</td>
                 <td>{{ row[6] }}</td>
                 <td>{{ row[7] }}</td>
@@ -335,7 +335,7 @@ def fetch_data(query):
 query1 = """
 SELECT id, ip, port, protocol, path, status_code, redirect_url, is_open_directory, last_scanned, retired
 FROM scan_results
-WHERE NOT (port = 80 AND protocol = 'http') AND NOT (port = 443 AND protocol = 'https') AND status_code IS NOT NULL;
+WHERE NOT (port = 80 AND protocol = 'http') AND NOT (port = 443 AND protocol = 'https') AND (status_code LIKE '2%' OR status_code LIKE '3%');
 """
 
 query2 = """
@@ -347,7 +347,7 @@ WHERE status_code IS NOT NULL AND is_open_directory = 1;
 query3 = """
 SELECT id, ip, port, protocol, path, status_code, redirect_url, is_open_directory, last_scanned, retired
 FROM scan_results
-WHERE status_code IS NOT NULL;
+WHERE status_code LIKE '2%' OR status_code LIKE '3%';
 """
 
 # Fetch port counts for Table 1
@@ -420,7 +420,7 @@ def render_table(data, table_id):
             {% for row in data %}
             <tr>
                 <td>{{ row[0] }}</td>
-                <td><a href="{{ row[3] }}://{{ row[1] }}:{{ row[2] }}{{ row[4] }}" target="_blank">{{ row[3] }}://{{ row[1] }}:{{ row[2] }}{{ row[4] }}</a></td>
+                <td><a href="{{ row[3] }}://{{ row[1] }}:{{ row[2] }}/{{ row[4] }}" target="_blank">{{ row[3] }}://{{ row[1] }}:{{ row[2] }}/{{ row[4] }}</a></td>
                 <td>{{ row[5] }}</td>
                 <td>{{ row[6] }}</td>
                 <td>{{ row[7] }}</td>
