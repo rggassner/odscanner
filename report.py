@@ -1,8 +1,11 @@
 #!venv/bin/python3
+from flask import Flask, render_template_string, request, jsonify
 import sqlite3
 from jinja2 import Template
 
-# Define database path and HTML template
+app = Flask(__name__)
+
+#Define database path and HTML template
 db_path = "scan_results.db"
 html_template = """
 <!DOCTYPE html>
@@ -98,6 +101,27 @@ html_template = """
             }
         }
     </style>
+     <script>
+        // JavaScript function to update the "retired" status
+        function retireRow(ip) {
+            fetch(`/retire`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ ip: ip }),
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert(`Successfully retired rows for IP: ${ip}`);
+                    location.reload(); // Refresh the page
+                } else {
+                    alert(`Failed to retire rows for IP: ${ip}`);
+                }
+            });
+        }
+    </script>
 </head>
 <body>
     <h1>Scan Results</h1>
@@ -193,6 +217,7 @@ html_template = """
                 <th onclick="sortTable(4, 'table3')">Open Directory</th>
                 <th onclick="sortTable(5, 'table3')">Last Scanned</th>
                 <th onclick="sortTable(6, 'table3')">Retired</th>
+                <th>Action</th>
             </tr>
         </thead>
         <tbody>
@@ -205,6 +230,7 @@ html_template = """
                 <td>{{ row[7] }}</td>
                 <td>{{ row[8] }}</td>
                 <td>{{ row[9] }}</td>
+                <td><button onclick="retireRow('{{ row[1] }}')">Retire</button></td>
             </tr>
             {% endfor %}
         </tbody>
@@ -331,124 +357,147 @@ def fetch_data(query):
     connection.close()
     return data
 
-# Queries to get data
-query1 = """
-SELECT id, ip, port, protocol, path, status_code, redirect_url, is_open_directory, last_scanned, retired
-FROM scan_results
-WHERE NOT (port = 80 AND protocol = 'http') AND NOT (port = 443 AND protocol = 'https') AND (status_code LIKE '2%' OR status_code LIKE '3%');
-"""
-
-query2 = """
-SELECT id, ip, port, protocol, path, status_code, redirect_url, is_open_directory, last_scanned, retired
-FROM scan_results
-WHERE status_code IS NOT NULL AND is_open_directory = 1;
-"""
-
-query3 = """
-SELECT id, ip, port, protocol, path, status_code, redirect_url, is_open_directory, last_scanned, retired
-FROM scan_results
-WHERE status_code LIKE '2%' OR status_code LIKE '3%';
-"""
-
-# Fetch port counts for Table 1
-port_counts = fetch_data("""
-SELECT port, COUNT(*) 
-FROM scan_results 
-WHERE NOT (port = 80 AND protocol = 'http') 
-  AND NOT (port = 443 AND protocol = 'https') 
-  AND status_code IS NOT NULL
-GROUP BY port;
-""")
-port_labels = [str(row[0]) for row in port_counts]
-port_values = [row[1] for row in port_counts]
-
-
-# Fetch data for all queries
-data1 = fetch_data(query1)
-data2 = fetch_data(query2)
-data3 = fetch_data(query3)
-
-# Calculate counts for the pie charts
-def get_count(query):
+# Function to execute a query to modify the database
+def execute_query(query, params=()):
     connection = sqlite3.connect(db_path)
     cursor = connection.cursor()
-    count = cursor.execute(query).fetchone()[0]
+    cursor.execute(query, params)
+    connection.commit()
     connection.close()
-    return count
 
-total_entries = get_count("SELECT COUNT(*) FROM scan_results;")
-table3_count = get_count("SELECT COUNT(*) FROM scan_results WHERE status_code IS NOT NULL;")
-other_entries = total_entries - table3_count
+@app.route("/retire", methods=["POST"])
+def retire():
+    data = request.get_json()
+    ip = data.get("ip")
+    if not ip:
+        return jsonify({"success": False, "error": "No IP provided"}), 400
+    
+    try:
+        query = "UPDATE scan_results SET retired = 1 WHERE ip = ?"
+        execute_query(query, (ip,))
+        return jsonify({"success": True})
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500
 
-# Fetch protocol counts for Table 3
-protocol_counts = fetch_data("""
-SELECT protocol, COUNT(*) 
-FROM scan_results 
-WHERE status_code IS NOT NULL 
-GROUP BY protocol;
-""")
-protocol_labels = [row[0] for row in protocol_counts]
-protocol_values = [row[1] for row in protocol_counts]
+@app.route("/")
+def scan_results():
+    query1 = """
+    SELECT id, ip, port, protocol, path, status_code, redirect_url, is_open_directory, last_scanned, retired
+    FROM scan_results
+    WHERE NOT (port = 80 AND protocol = 'http') AND NOT (port = 443 AND protocol = 'https') AND (status_code LIKE '2%' OR status_code LIKE '3%');
+    """
 
-# Fetch status code counts for Table 3
-status_code_counts = fetch_data("""
-SELECT status_code, COUNT(*)
-FROM scan_results
-WHERE status_code IS NOT NULL
-GROUP BY status_code;
-""")
-status_code_labels = [str(row[0]) for row in status_code_counts]
-status_code_values = [row[1] for row in status_code_counts]
+    query2 = """
+    SELECT id, ip, port, protocol, path, status_code, redirect_url, is_open_directory, last_scanned, retired
+    FROM scan_results
+    WHERE status_code IS NOT NULL AND is_open_directory = 1;
+    """
 
-# Prepare tables HTML content
-def render_table(data, table_id):
-    return """
-    <h2>Table {{ table_id }}: Data</h2>
-    <table id="table{{ table_id }}">
-        <thead>
-            <tr>
-                <th onclick="sortTable(0, 'table{{ table_id }}')">ID</th>
-                <th onclick="sortTable(1, 'table{{ table_id }}')">URL</th>
-                <th onclick="sortTable(2, 'table{{ table_id }}')">Status Code</th>
-                <th onclick="sortTable(3, 'table{{ table_id }}')">Redirect URL</th>
-                <th onclick="sortTable(4, 'table{{ table_id }}')">Open Directory</th>
-                <th onclick="sortTable(5, 'table{{ table_id }}')">Last Scanned</th>
-                <th onclick="sortTable(6, 'table{{ table_id }}')">Retired</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for row in data %}
-            <tr>
-                <td>{{ row[0] }}</td>
-                <td><a href="{{ row[3] }}://{{ row[1] }}:{{ row[2] }}/{{ row[4] }}" target="_blank">{{ row[3] }}://{{ row[1] }}:{{ row[2] }}/{{ row[4] }}</a></td>
-                <td>{{ row[5] }}</td>
-                <td>{{ row[6] }}</td>
-                <td>{{ row[7] }}</td>
-                <td>{{ row[8] }}</td>
-                <td>{{ row[9] }}</td>
-            </tr>
-            {% endfor %}
-        </tbody>
-    </table>
-    """.replace('{{ table_id }}', str(table_id))
+    query3 = """
+    SELECT id, ip, port, protocol, path, status_code, redirect_url, is_open_directory, last_scanned, retired
+    FROM scan_results
+    WHERE (status_code LIKE '2%' OR status_code LIKE '3%') and retired = 0 and (redirect_url IS NULL or redirect_url = '');
+    """
+    port_counts = fetch_data("""
+    SELECT port, COUNT(*) 
+    FROM scan_results 
+    WHERE NOT (port = 80 AND protocol = 'http') 
+      AND NOT (port = 443 AND protocol = 'https') 
+      AND status_code IS NOT NULL
+    GROUP BY port;
+    """)
 
-# Render the HTML with Jinja2
-template = Template(html_template)
-html_content = template.render(
-    data1=data1,
-    data2=data2,
-    data3=data3,
-    table3_count=table3_count,
-    other_entries=other_entries,
-    protocol_labels=protocol_labels,
-    protocol_values=protocol_values,
-    status_code_labels=status_code_labels,
-    status_code_values=status_code_values,
-    port_labels=port_labels,  # Add port labels
-    port_values=port_values   # Add port values
-)
+    port_labels = [str(row[0]) for row in port_counts]
+    port_values = [row[1] for row in port_counts]
+    data1 = fetch_data(query1)
+    data2 = fetch_data(query2)
+    data3 = fetch_data(query3)
+
+    # Calculate counts for the pie charts
+    def get_count(query):
+        connection = sqlite3.connect(db_path)
+        cursor = connection.cursor()
+        count = cursor.execute(query).fetchone()[0]
+        connection.close()
+        return count
+
+    total_entries = get_count("SELECT COUNT(*) FROM scan_results;")
+    table3_count = get_count("SELECT COUNT(*) FROM scan_results WHERE status_code IS NOT NULL;")
+    other_entries = total_entries - table3_count
+
+    # Fetch protocol counts for Table 3
+    protocol_counts = fetch_data("""
+    SELECT protocol, COUNT(*) 
+    FROM scan_results 
+    WHERE status_code IS NOT NULL 
+    GROUP BY protocol;
+    """)
+    protocol_labels = [row[0] for row in protocol_counts]
+    protocol_values = [row[1] for row in protocol_counts]
+    
+    # Fetch status code counts for Table 3
+    status_code_counts = fetch_data("""
+    SELECT status_code, COUNT(*)
+    FROM scan_results
+    WHERE status_code IS NOT NULL
+    GROUP BY status_code;
+    """)
+    status_code_labels = [str(row[0]) for row in status_code_counts]
+    status_code_values = [row[1] for row in status_code_counts]
+
+    # Prepare tables HTML content
+    def render_table(data, table_id):
+        return """
+        <h2>Table {{ table_id }}: Data</h2>
+        <table id="table{{ table_id }}">
+            <thead>
+                <tr>
+                    <th onclick="sortTable(0, 'table{{ table_id }}')">ID</th>
+                    <th onclick="sortTable(1, 'table{{ table_id }}')">URL</th>
+                    <th onclick="sortTable(2, 'table{{ table_id }}')">Status Code</th>
+                    <th onclick="sortTable(3, 'table{{ table_id }}')">Redirect URL</th>
+                    <th onclick="sortTable(4, 'table{{ table_id }}')">Open Directory</th>
+                    <th onclick="sortTable(5, 'table{{ table_id }}')">Last Scanned</th>
+                    <th onclick="sortTable(6, 'table{{ table_id }}')">Retired</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for row in data %}
+                <tr>
+                    <td>{{ row[0] }}</td>
+                    <td><a href="{{ row[3] }}://{{ row[1] }}:{{ row[2] }}/{{ row[4] }}" target="_blank">{{ row[3] }}://{{ row[1] }}:{{ row[2] }}/{{ row[4] }}</a></td>
+                    <td>{{ row[5] }}</td>
+                    <td>{{ row[6] }}</td>
+                    <td>{{ row[7] }}</td>
+                    <td>{{ row[8] }}</td>
+                    <td>{{ row[9] }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        """.replace('{{ table_id }}', str(table_id))
+
+    # Render the HTML with Jinja2
+    template = Template(html_template)
+    return render_template_string(
+        html_template,
+        data1=data1,
+        data2=data2,
+        data3=data3,
+        table3_count=table3_count,
+        other_entries=other_entries,
+        protocol_labels=protocol_labels,
+        protocol_values=protocol_values,
+        status_code_labels=status_code_labels,
+        status_code_values=status_code_values,
+        port_labels=port_labels,  
+        port_values=port_values  
+    )
+
+if __name__ == "__main__":
+    app.run(debug=True)
 # Write the HTML content to a file
-with open("scan_results.html", "w") as html_file:
-    html_file.write(html_content)
+#with open("scan_results.html", "w") as html_file:
+#    html_file.write(html_content)
 
-print("HTML file 'scan_results.html' has been generated.")
+#print("HTML file 'scan_results.html' has been generated.")
