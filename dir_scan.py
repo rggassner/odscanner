@@ -115,7 +115,7 @@ def get_random_entry():
     conn = sqlite3.connect(DB_NAME)
     cursor = conn.cursor()
     cursor.execute(f"""
-        SELECT ip, port, protocol FROM {TABLE_NAME} WHERE (path = '' OR path IS NULL) AND retired = 0
+        SELECT ip, port, protocol FROM {TABLE_NAME} WHERE (path = '' OR path IS NULL) AND retired = 0 and (redirect_url IS NULL or redirect_url = '')
         ORDER BY RANDOM() LIMIT 1
     """)
     entry = cursor.fetchone()
@@ -145,7 +145,7 @@ if __name__ == "__main__":
     file_path = 'dsstorewordlist.txt' 
     paths, weights = load_paths(file_path)
     parser = argparse.ArgumentParser(description="Run path scanning tasks with multiprocessing.")
-    parser.add_argument("--iterations", type=int, default=10, help="Number of iterations to run per process.")
+    parser.add_argument("--iterations", type=int, default=32, help="Number of iterations to run per process.")
     parser.add_argument("--processes", type=int, default=4, help="Number of processes to run simultaneously.")
     parser.add_argument("--verbose",default=True, action="store_true", help="Enable verbose output.")
     args = parser.parse_args()
