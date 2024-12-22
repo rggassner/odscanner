@@ -142,6 +142,9 @@ def worker(task_count, verbose, paths, weights):
             save_to_database(ip, port, protocol, path, status_code, redirect_url, is_open_directory, content, retired, verbose)
 
 if __name__ == "__main__":
+    #https://github.com/danielmiessler/SecLists/blob/master/Discovery/Web-Content/dsstorewordlist.txt
+    #https://github.com/aels/subdirectories-discover
+    #It was collected by parsing Alexa top-million sites for .DS_Store files (https://en.wikipedia.org/wiki/.DS_Store), extracting all the found files, and then extracting found file and directory names from around 300k real websites.
     file_path = 'dsstorewordlist.txt' 
     paths, weights = load_paths(file_path)
     parser = argparse.ArgumentParser(description="Run path scanning tasks with multiprocessing.")
