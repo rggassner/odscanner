@@ -10,7 +10,7 @@ import ssl
 import re
 from datetime import datetime, timezone
 
-
+#Scan ports based on nmap service probabilities
 file_path = "/usr/share/nmap/nmap-services"
 
 DB_NAME = "scan_results.db"
