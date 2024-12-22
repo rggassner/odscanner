@@ -10,7 +10,7 @@ import ssl
 import re
 from datetime import datetime, timezone
 
-#Scan ports based on nmap service probabilities
+
 file_path = "/usr/share/nmap/nmap-services"
 
 DB_NAME = "scan_results.db"
@@ -57,6 +57,8 @@ EXCLUDED_NETWORKS = [
     IPv4Network("100.64.0.0/10"),
     IPv4Network("169.254.0.0/16"),
 ]
+
+RANDOM_PORT_CHANCE = 0.1
 
 debug_ips=[
         '127.0.0.1',
@@ -133,6 +135,7 @@ def generate_random_port(ports, full_range=(1, 65535)):
     # Select a random port based on probabilities
     return random.choices(combined_ports, weights=normalized_weights, k=1)[0]
 
+
 async def check_http(ip, port, protocol, verbose=False):
     """
     Scan an HTTP or HTTPS service
@@ -198,7 +201,11 @@ async def scan_ips(ip_list, concurrency=4, verbose=False):
     
     async def bound_check(ip):
         protocol = get_http_or_https()  # Choose a protocol at random
-        port = generate_random_port(ports)  # Choose a port 
+        if random.random() < RANDOM_PORT_CHANCE:  
+            port = generate_random_port(ports)  # Choose a random non-default port
+        else:
+            port = 80 if protocol == "http" else 443  # Use default ports for HTTP/HTTPS
+
         async with sem:
             result = await check_http(ip, port, protocol, verbose)
             if result:
@@ -232,7 +239,7 @@ if __name__ == "__main__":
     ports = load_nmap_services(file_path)
 
     ip_count = 4096  # Number of IPs to scan in each run
-    concurrency = 4
+    concurrency = 10
     ip_list = generate_random_ips(ip_count)
     asyncio.run(scan_ips(ip_list, concurrency, args.verbose))
     print("Scan completed.")
