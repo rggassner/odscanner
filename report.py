@@ -378,6 +378,8 @@ def retire():
         return jsonify({"success": True})
     except Exception as e:
         return jsonify({"success": False, "error": str(e)}), 500
+    #If you want to remove the retired for accessible any ips
+    #UPDATE scan_results SET retired = 0 WHERE retired = 1 AND not (status_code IS NULL OR status_code = '');
 
 @app.route("/")
 def scan_results():
@@ -394,9 +396,13 @@ def scan_results():
     """
 
     query3 = """
-    SELECT id, ip, port, protocol, path, status_code, redirect_url, is_open_directory, last_scanned, retired
-    FROM scan_results
-    WHERE (status_code LIKE '2%' OR status_code LIKE '3%') and retired = 0 and (redirect_url IS NULL or redirect_url = '');
+    SELECT id, ip, port, protocol, path, status_code, redirect_url, is_open_directory, last_scanned, retired,
+       COUNT(*) OVER (PARTITION BY ip) AS ip_count
+FROM scan_results
+WHERE (status_code LIKE '2%' OR status_code LIKE '3%')
+  AND retired = 0
+  AND (redirect_url IS NULL OR redirect_url = '')
+ORDER BY ip_count DESC, ip;
     """
     port_counts = fetch_data("""
     SELECT port, COUNT(*) 
