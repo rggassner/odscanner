@@ -7,41 +7,9 @@ from datetime import datetime
 from multiprocessing import Pool, Manager
 import ssl,re
 from datetime import datetime, timezone
+from shared_content import OPEN_DIRECTORY_INDICATORS, OPEN_DIRECTORY_INDICATORS_REGEX, USER_AGENTS, EXCLUDED_NETWORKS, DB_NAME, TABLE_NAME
 
-
-DB_NAME = "scan_results.db"
-TABLE_NAME = "scan_results"
-
-USER_AGENTS = [
-    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/116.0.0.0 Safari/537.36",
-    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/116.0.0.0 Safari/537.36",
-    "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/116.0.0.0 Safari/537.36",
-    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) Gecko/20100101 Firefox/117.0",
-    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) Gecko/20100101 Firefox/117.0",
-    "Mozilla/5.0 (X11; Linux x86_64) Gecko/20100101 Firefox/117.0",
-]
-
-OPEN_DIRECTORY_INDICATORS = [
-    "Parent Directory",
-    "folder listing",
-    "Browsing",
-    "<h1>Index of",
-    "folder view",
-    "Directory Contents",
-    "Index of /",
-    "Directory listing of http",
-    "AList",
-    "Choose the calibre library to browse",
-    "<div class='graph2'>FOLDER</div>",
-]
-
-OPEN_DIRECTORY_INDICATORS_REGEX = [
-    re.compile(r"<title>\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}\s*-\s*/</title>", re.IGNORECASE),
-    re.compile(r"<title>Index of .*?</title>", re.IGNORECASE),
-    re.compile(r"<h1>Index of .*?</h1>", re.IGNORECASE),
-    re.compile(r"Directory listing for .*", re.IGNORECASE),
-]
-
+POS_WEIGHT=1
 
 async def check_http(ip, port, protocol, path, verbose=False):
     if verbose:
@@ -70,7 +38,7 @@ async def check_http(ip, port, protocol, path, verbose=False):
 def load_paths(file_path):
     with open(file_path, 'r') as f:
         paths = f.readlines()
-    weights = [(len(paths) - i) ** 8 for i in range(len(paths))]
+    weights = [(len(paths) - i) ** POS_WEIGHT for i in range(len(paths))]
     return paths, weights
 
 def select_path_with_weight(paths, weights):
@@ -142,14 +110,12 @@ def worker(task_count, verbose, paths, weights):
             save_to_database(ip, port, protocol, path, status_code, redirect_url, is_open_directory, content, retired, verbose)
 
 if __name__ == "__main__":
-    #https://github.com/danielmiessler/SecLists/blob/master/Discovery/Web-Content/dsstorewordlist.txt
-    #https://github.com/aels/subdirectories-discover
-    #It was collected by parsing Alexa top-million sites for .DS_Store files (https://en.wikipedia.org/wiki/.DS_Store), extracting all the found files, and then extracting found file and directory names from around 300k real websites.
-    file_path = 'dsstorewordlist.txt' 
+    #file_path = 'dsstorewordlist.txt' 
+    file_path = 'odcrawlerdump.txt' 
     paths, weights = load_paths(file_path)
     parser = argparse.ArgumentParser(description="Run path scanning tasks with multiprocessing.")
-    parser.add_argument("--iterations", type=int, default=32, help="Number of iterations to run per process.")
-    parser.add_argument("--processes", type=int, default=4, help="Number of processes to run simultaneously.")
+    parser.add_argument("--iterations", type=int, default=512, help="Number of iterations to run per process.")
+    parser.add_argument("--processes", type=int, default=1, help="Number of processes to run simultaneously.")
     parser.add_argument("--verbose",default=True, action="store_true", help="Enable verbose output.")
     args = parser.parse_args()
     with Pool(args.processes) as pool:
