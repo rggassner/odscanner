@@ -111,7 +111,7 @@ def worker(task_count, verbose, paths, weights):
 
 if __name__ == "__main__":
     #file_path = 'dsstorewordlist.txt' 
-    file_path = 'odcrawlerdump.txt' 
+    file_path = 'odcrawler_frequent.txt' 
     paths, weights = load_paths(file_path)
     parser = argparse.ArgumentParser(description="Run path scanning tasks with multiprocessing.")
     parser.add_argument("--iterations", type=int, default=512, help="Number of iterations to run per process.")
