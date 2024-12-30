@@ -17,6 +17,7 @@ OPEN_DIRECTORY_INDICATORS = [
     "AList",
     "Choose the calibre library to browse",
     "<div class='graph2'>FOLDER</div>",
+    "index - powered by h5ai",
 ]
 
 OPEN_DIRECTORY_INDICATORS_REGEX = [
