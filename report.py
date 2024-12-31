@@ -1,5 +1,5 @@
 #!venv/bin/python3
-from flask import Flask, render_template_string, request, jsonify
+from flask import Flask, render_template_string, request, jsonify,render_template
 import sqlite3
 from jinja2 import Template
 
@@ -380,6 +380,58 @@ def retire():
         return jsonify({"success": False, "error": str(e)}), 500
     #If you want to remove the retired for accessible any ips
     #UPDATE scan_results SET retired = 0 WHERE retired = 1 AND not (status_code IS NULL OR status_code = '');
+
+
+def get_database_statistics():
+    db_path = 'scan_results.db'  # Update with your database path
+    conn = sqlite3.connect(db_path)
+    conn.row_factory = sqlite3.Row
+    cursor = conn.cursor()
+
+    stats = {}
+
+    # Total records
+    cursor.execute("SELECT COUNT(*) AS total FROM scan_results")
+    stats['total_scan_results'] = cursor.fetchone()['total']
+
+    cursor.execute("SELECT COUNT(*) AS total FROM extracted_links")
+    stats['total_extracted_links'] = cursor.fetchone()['total']
+
+    # Top scanned IPs
+    cursor.execute("SELECT ip, COUNT(*) AS count FROM scan_results GROUP BY ip ORDER BY count DESC LIMIT 5")
+    stats['top_ips'] = cursor.fetchall()
+
+    # Top scanned ports
+    cursor.execute("SELECT port, COUNT(*) AS count FROM scan_results GROUP BY port ORDER BY count DESC LIMIT 5")
+    stats['top_ports'] = cursor.fetchall()
+
+    # HTTP Status Code Distribution
+    cursor.execute("SELECT status_code, COUNT(*) AS count FROM scan_results GROUP BY status_code ORDER BY count DESC")
+    stats['status_code_distribution'] = cursor.fetchall()
+
+    # Open directories
+    cursor.execute("SELECT COUNT(*) AS count FROM scan_results WHERE is_open_directory = 1")
+    stats['open_directories'] = cursor.fetchone()['count']
+
+    # Retired entries
+    cursor.execute("SELECT COUNT(*) AS count FROM scan_results WHERE retired = 1")
+    stats['retired_entries'] = cursor.fetchone()['count']
+
+    # Last scan activity
+    cursor.execute("SELECT MAX(last_scanned) AS last_scan FROM scan_results")
+    stats['last_scan_activity'] = cursor.fetchone()['last_scan']
+
+    # Top redirect URLs
+    cursor.execute("SELECT redirect_url, COUNT(*) AS count FROM scan_results WHERE redirect_url IS NOT NULL GROUP BY redirect_url ORDER BY count DESC LIMIT 5")
+    stats['top_redirects'] = cursor.fetchall()
+
+    conn.close()
+    return stats
+
+@app.route('/statistics')
+def statistics():
+    stats = get_database_statistics()
+    return render_template('statistics.html', stats=stats)
 
 @app.route("/")
 def scan_results():
