@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Database Statistics</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        table { width: 100%; border-collapse: collapse; margin: 20px 0; }
+        th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+        th { background-color: #f4f4f4; }
+    </style>
+</head>
+<body>
+    <h1>Database Statistics</h1>
+    <h2>Overview</h2>
+    <ul>
+        <li>Total Scan Results: {{ stats.total_scan_results }}</li>
+        <li>Total Extracted Links: {{ stats.total_extracted_links }}</li>
+        <li>Open Directories: {{ stats.open_directories }}</li>
+        <li>Retired Entries: {{ stats.retired_entries }}</li>
+        <li>Last Scan Activity: {{ stats.last_scan_activity }}</li>
+    </ul>
+    
+    <h2>Top Scanned IPs</h2>
+    <table>
+        <tr><th>IP</th><th>Scans</th></tr>
+        {% for ip in stats.top_ips %}
+        <tr><td>{{ ip.ip }}</td><td>{{ ip.count }}</td></tr>
+        {% endfor %}
+    </table>
+    
+    <h2>Top Scanned Ports</h2>
+    <table>
+        <tr><th>Port</th><th>Scans</th></tr>
+        {% for port in stats.top_ports %}
+        <tr><td>{{ port.port }}</td><td>{{ port.count }}</td></tr>
+        {% endfor %}
+    </table>
+    
+    <h2>HTTP Status Code Distribution</h2>
+    <table>
+        <tr><th>Status Code</th><th>Count</th></tr>
+        {% for code in stats.status_code_distribution %}
+        <tr><td>{{ code.status_code }}</td><td>{{ code.count }}</td></tr>
+        {% endfor %}
+    </table>
+    
+    <h2>Top Redirect URLs</h2>
+    <table>
+        <tr><th>URL</th><th>Count</th></tr>
+        {% for redirect in stats.top_redirects %}
+        <tr><td>{{ redirect.redirect_url }}</td><td>{{ redirect.count }}</td></tr>
+        {% endfor %}
+    </table>
+</body>
+</html>
+
